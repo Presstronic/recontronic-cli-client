@@ -1,0 +1,494 @@
+Issue ID,Type,Priority,Title,Story,Acceptance Criteria,Epic,Estimated Points,Dependencies,Labels
+RECON-001,Tech Story,High,Initialize Go Module and Project Structure,"As a developer, I need to initialize the Go module and set up the basic project structure so that I can start building the CLI application.","- Go module initialized with appropriate module path
+- go.mod and go.sum files created
+- All project directories created (cmd, pkg, proto, etc.)
+- Basic main.go file created with placeholder
+- Project builds successfully with 'go build'
+- README.md accurately reflects project state",Project Setup,2,,setup;infrastructure
+RECON-002,Tech Story,High,Implement Configuration Management System,"As a developer, I need a robust configuration management system so that users can configure server endpoints, API keys, and preferences.","- Viper integration for config file management
+- Support for config file at ~/.recon-cli/config.yaml
+- Environment variable support (RECON_*)
+- Configuration precedence: flags > env vars > config file > defaults
+- Config validation with clear error messages
+- Support for: server URL, gRPC endpoint, API key, timeout, output format
+- Unit tests with 80%+ coverage",Configuration,5,RECON-001,configuration;viper
+RECON-003,Tech Story,High,Implement Root Command with Cobra,"As a developer, I need to set up the root Cobra command so that I can build subcommands and provide a consistent CLI interface.","- Cobra root command initialized in cmd/root.go
+- Global flags implemented (--config, --debug, --output)
+- Version command implemented
+- Help text properly formatted
+- Command completion setup (bash, zsh, fish)
+- Unit tests for root command
+- Application exits with proper exit codes",CLI Foundation,3,RECON-001,cobra;cli
+RECON-004,User Story,High,Config Command - Initialize Configuration,"As a user, I want to run 'recon-cli config init' so that I can create a configuration file with default values.","- 'recon-cli config init' creates ~/.recon-cli/config.yaml
+- Prompts user for required values (server URL, API key)
+- Provides sensible defaults for optional values
+- Doesn't overwrite existing config unless --force flag used
+- Confirms successful creation with file path
+- Handles errors gracefully (permissions, invalid paths)
+- Help text explains usage",Configuration,3,RECON-002;RECON-003,config;user-facing
+RECON-005,User Story,High,Config Command - Set Configuration Values,"As a user, I want to run 'recon-cli config set <key> <value>' so that I can update configuration values.","- 'recon-cli config set server http://localhost:8080' works
+- 'recon-cli config set api-key <key>' works
+- Validates values before saving (e.g., URL format)
+- Creates config file if it doesn't exist
+- Confirms successful update
+- Supports all config keys: server, grpc-server, api-key, timeout, output-format, log-level
+- Error handling for invalid keys or values",Configuration,3,RECON-002;RECON-003,config;user-facing
+RECON-006,User Story,Medium,Config Command - Get Configuration Values,"As a user, I want to run 'recon-cli config get <key>' so that I can view current configuration values.","- 'recon-cli config get server' displays current value
+- 'recon-cli config list' shows all configuration
+- Sensitive values (api-key) are masked by default
+- --show-sensitive flag reveals masked values
+- Clear error message if key doesn't exist
+- Output format respects --output flag (table, json, yaml)
+- Returns proper exit code if config not found",Configuration,2,RECON-002;RECON-003,config;user-facing
+RECON-007,Tech Story,Critical,Implement REST API Client,"As a developer, I need a REST API client so that the CLI can communicate with the Recontronic Platform server.","- HTTP client with proper timeout handling
+- Bearer token authentication using API key
+- All REST endpoints implemented (programs, scans, anomalies)
+- Proper error handling with typed errors
+- Request/response logging for debugging
+- Retry logic for transient failures (3 retries with backoff)
+- Context support for cancellation
+- Unit tests with mocked HTTP server (80%+ coverage)
+- Integration tests with real server (tagged)",API Client,8,RECON-002,rest;client;critical
+RECON-008,Tech Story,Critical,Define Data Models,"As a developer, I need to define data models matching the API schema so that I can properly serialize/deserialize API responses.","- Program model with all fields
+- Scan model with all fields
+- Anomaly model with all fields
+- Stats model with all fields
+- Metadata structures for extensibility
+- JSON tags for serialization
+- Validation tags for input validation
+- String methods for debugging
+- Unit tests for serialization/deserialization",Models,5,RECON-001,models;types
+RECON-009,User Story,Critical,Program Command - Add Program,"As a user, I want to run 'recon-cli program add' so that I can register a new bug bounty program for monitoring.","- Interactive mode: prompts for name, platform, scope, frequency
+- Flag mode: --name, --platform, --scope, --frequency flags
+- Scope supports multiple domains (comma-separated or multiple flags)
+- Validates required fields (name, scope)
+- Sends POST request to /api/v1/programs
+- Displays created program details on success
+- Clear error messages for validation or API errors
+- Supports JSON input via --file flag
+- Example in help text",Program Management,5,RECON-003;RECON-007;RECON-008,program;user-facing;critical
+RECON-010,User Story,High,Program Command - List Programs,"As a user, I want to run 'recon-cli program list' so that I can see all programs I'm monitoring.","- Sends GET request to /api/v1/programs
+- Displays results in table format by default
+- Shows: ID, Name, Platform, Asset Count, Anomaly Count, Last Scanned
+- Supports --output json/yaml for machine parsing
+- Filter flags: --platform, --active-only
+- Sorting: --sort-by (name, last-scanned, asset-count)
+- Pagination: --limit, --offset
+- Empty state message if no programs
+- Error handling for API failures",Program Management,3,RECON-003;RECON-007;RECON-008,program;user-facing
+RECON-011,User Story,Medium,Program Command - Get Program Details,"As a user, I want to run 'recon-cli program get --id <id>' so that I can view detailed information about a specific program.","- Sends GET request to /api/v1/programs/:id
+- Displays comprehensive program details
+- Shows full scope list
+- Shows recent scan history
+- Shows anomaly statistics
+- Formatted output (table/json/yaml)
+- Error handling for not found (404)
+- Suggests 'program list' if ID invalid",Program Management,2,RECON-003;RECON-007;RECON-008,program;user-facing
+RECON-012,User Story,Medium,Program Command - Delete Program,"As a user, I want to run 'recon-cli program delete --id <id>' so that I can remove a program I no longer want to monitor.","- Sends DELETE request to /api/v1/programs/:id
+- Confirmation prompt: 'Are you sure?' (skip with --yes flag)
+- Displays program name in confirmation
+- Success message on deletion
+- Error handling for not found or in-use programs
+- --force flag for cascade deletion
+- Dry run mode with --dry-run",Program Management,2,RECON-003;RECON-007;RECON-008,program;user-facing
+RECON-013,User Story,Critical,Scan Command - Trigger Scan,"As a user, I want to run 'recon-cli scan trigger' so that I can manually start a reconnaissance scan.","- Requires --program-id flag
+- Optional --type flag (passive, active) defaults to passive
+- Sends POST request to /api/v1/scans
+- Returns scan ID and status
+- Option to watch progress with --watch flag
+- Validates program exists before triggering
+- Clear error messages for invalid inputs
+- Example in help text",Scan Management,5,RECON-003;RECON-007;RECON-008,scan;user-facing;critical
+RECON-014,User Story,High,Scan Command - List Scans,"As a user, I want to run 'recon-cli scan list' so that I can view scan history.","- Sends GET request to /api/v1/scans
+- Table format shows: ID, Program, Type, Status, Progress, Started, Duration
+- Filter by --program-id
+- Filter by --status (queued, running, completed, failed)
+- Sort by --sort-by (started, completed)
+- Limit with --limit flag (default 20)
+- Color coding for status (green=completed, red=failed, yellow=running)
+- Relative timestamps (2 hours ago) with --relative flag",Scan Management,3,RECON-003;RECON-007;RECON-008,scan;user-facing
+RECON-015,User Story,High,Scan Command - Get Scan Status,"As a user, I want to run 'recon-cli scan get --id <id>' so that I can view detailed status of a specific scan.","- Sends GET request to /api/v1/scans/:id
+- Shows detailed scan information
+- Progress bar for running scans
+- Shows assets found count
+- Shows current step/phase
+- Shows start time, end time, duration
+- Shows any error messages
+- Formatted output (table/json/yaml)",Scan Management,3,RECON-003;RECON-007;RECON-008,scan;user-facing
+RECON-016,User Story,Medium,Anomalies Command - List Anomalies,"As a user, I want to run 'recon-cli anomalies list' so that I can view detected security anomalies.","- Sends GET request to /api/v1/anomalies
+- Table shows: ID, Program, Type, Priority, Description, Detected At
+- Filter by --program-id
+- Filter by --min-priority (e.g., 70)
+- Filter by --unreviewed flag
+- Filter by --type (new_subdomain, tech_change, etc.)
+- Sort by --sort-by (priority, detected-at)
+- Color coding by priority (red >80, yellow >60, white <60)
+- Limit with --limit flag",Anomaly Management,5,RECON-003;RECON-007;RECON-008,anomalies;user-facing
+RECON-017,User Story,Medium,Anomalies Command - View Anomaly Details,"As a user, I want to run 'recon-cli anomalies view --id <id>' so that I can see full details about a specific anomaly.","- Sends GET request to /api/v1/anomalies/:id
+- Shows all anomaly fields
+- Shows priority score with explanation
+- Shows evidence/metadata in readable format
+- Shows associated asset information
+- Color-coded priority
+- Formatted output (table/json/yaml)
+- Suggests investigation actions",Anomaly Management,3,RECON-003;RECON-007;RECON-008,anomalies;user-facing
+RECON-018,User Story,Low,Anomalies Command - Mark as Reviewed,"As a user, I want to run 'recon-cli anomalies review --id <id>' so that I can mark an anomaly as investigated.","- Sends PATCH request to /api/v1/anomalies/:id
+- Optional --notes flag for review notes
+- Marks is_reviewed = true
+- Confirmation message
+- Option to mark multiple with --ids flag
+- Validates anomaly exists
+- Clear error messages",Anomaly Management,2,RECON-003;RECON-007;RECON-008,anomalies;user-facing
+RECON-019,Tech Story,High,Implement Output Formatting System,"As a developer, I need a flexible output formatting system so that users can view data in different formats (table, JSON, YAML).","- Table formatter with aligned columns
+- JSON formatter with pretty printing
+- YAML formatter
+- Format selection via --output flag
+- Default format from config file
+- Color support for table format (with --no-color flag)
+- Proper handling of nested structures
+- Unit tests for each formatter",UI/Formatting,5,RECON-008,ui;formatting
+RECON-020,Tech Story,Medium,Implement Error Handling Framework,"As a developer, I need a consistent error handling framework so that users receive clear, actionable error messages.","- Typed errors for different failure scenarios
+- HTTP status code mapping to error types
+- User-friendly error messages
+- Debug mode shows full error details
+- Exit codes mapped to error types
+- Error wrapping with context
+- Suggestions for common errors (e.g., 'run config init')
+- Unit tests for error scenarios",Error Handling,3,RECON-007,errors;framework
+RECON-021,Tech Story,High,Setup Protocol Buffers for gRPC,"As a developer, I need to set up Protocol Buffers definitions so that I can implement gRPC streaming.","- Proto files in proto/recon/v1/
+- Service definitions for streaming (StreamAnomalies, WatchScan, StreamStats)
+- Message definitions matching API spec
+- Makefile target for proto generation
+- Generated Go code in gen/go/recon/v1/
+- buf or protoc setup for code generation
+- Documentation for regenerating protos
+- Generated code committed to repo",gRPC,5,RECON-001,grpc;protobuf
+RECON-022,Tech Story,Critical,Implement gRPC Client,"As a developer, I need a gRPC client so that the CLI can receive real-time streaming updates.","- gRPC connection management with TLS support
+- Authentication via metadata (API key)
+- StreamAnomalies implementation
+- WatchScan implementation
+- StreamStats implementation
+- StreamLogs implementation (optional)
+- Reconnection logic for dropped connections
+- Context support for cancellation
+- Unit tests with mocked gRPC server
+- Integration tests with real server",gRPC,8,RECON-002;RECON-021,grpc;client;critical
+RECON-023,User Story,Medium,Scan Command - Watch Scan Progress,"As a user, I want to run 'recon-cli scan watch --id <id>' so that I can monitor a scan in real-time.","- Uses gRPC WatchScan stream
+- Live updating progress bar
+- Shows current step/phase
+- Shows assets discovered count (updating)
+- Shows elapsed time (updating)
+- Handles scan completion gracefully
+- Handles scan failure with error message
+- Can be interrupted with Ctrl+C
+- Falls back to polling if gRPC unavailable",Scan Management,5,RECON-003;RECON-022,scan;user-facing;grpc
+RECON-024,Tech Story,Medium,Implement TUI Framework with Bubble Tea,"As a developer, I need to set up the Bubble Tea TUI framework so that I can build interactive dashboards.","- Bubble Tea integration
+- Basic TUI model structure
+- Keyboard input handling
+- Screen resize handling
+- Component reusability (tables, lists, etc.)
+- Color scheme/theming
+- Update loop implementation
+- Unit tests for models",UI/TUI,5,RECON-001,tui;bubbletea
+RECON-025,User Story,Medium,Dashboard Command - Live Anomaly Dashboard,"As a user, I want to run 'recon-cli dashboard' so that I can monitor anomalies in real-time with an interactive interface.","- Full-screen TUI using Bubble Tea
+- Real-time anomaly stream via gRPC
+- Displays anomalies in scrollable list
+- Color-coded by priority
+- Keyboard navigation (j/k or arrows)
+- Press Enter to view details
+- Press 'r' to mark as reviewed
+- Press 'q' to quit
+- Shows connection status
+- Filters panel (toggle with 'f')
+- Auto-scrolls to new anomalies",Dashboard,8,RECON-003;RECON-022;RECON-024,dashboard;user-facing;tui
+RECON-026,User Story,Low,Stats Command - View Statistics,"As a user, I want to run 'recon-cli stats' so that I can view platform statistics.","- Table format by default
+- Shows: Active Programs, Total Assets, Unreviewed Anomalies, Running Scans
+- Optionally uses gRPC StreamStats for live updates with --live flag
+- Updates every N seconds (configurable with --interval)
+- Press Ctrl+C to stop live view
+- JSON/YAML output supported
+- Colorized output",Statistics,3,RECON-003;RECON-007;RECON-022,stats;user-facing
+RECON-027,User Story,Low,Anomalies Command - Stream Anomalies,"As a user, I want to run 'recon-cli anomalies stream' so that I can see anomalies as they're detected in real-time.","- Uses gRPC StreamAnomalies
+- Displays anomalies as they arrive
+- Filter by --min-priority
+- Filter by --program-id
+- Formatted output (one per line or JSON)
+- Color-coded by priority
+- Press Ctrl+C to stop
+- Shows connection status
+- Handles reconnection automatically",Anomaly Management,5,RECON-003;RECON-022,anomalies;user-facing;grpc
+RECON-028,Tech Story,Medium,Implement Logging System,"As a developer, I need a structured logging system so that I can debug issues and provide helpful output.","- Structured logging with log levels (debug, info, warn, error)
+- Log level configurable via config and --log-level flag
+- Debug mode logs API requests/responses
+- Log file support (optional, via config)
+- No logs in normal operation (only errors)
+- Use standard library or zerolog
+- Unit tests for logger",Logging,3,RECON-002,logging;infrastructure
+RECON-029,Tech Story,High,Create Makefile for Build Automation,"As a developer, I need a Makefile so that I can easily build, test, and release the CLI.","- Targets: build, test, lint, clean, install
+- Cross-compilation targets (linux, darwin, windows)
+- Proto generation target
+- Install development tools target
+- Version injection during build
+- Test coverage report generation
+- Release artifact creation
+- Documentation in README",Build System,3,RECON-001,build;makefile
+RECON-030,Tech Story,Medium,Setup CI/CD Pipeline,"As a developer, I need CI/CD automation so that code quality is enforced and releases are automated.","- GitHub Actions workflow
+- Run tests on PR and push
+- Run linter (golangci-lint)
+- Check code coverage (minimum threshold)
+- Build for multiple platforms
+- Create release artifacts on tag
+- Upload binaries to GitHub Releases
+- Run security scanning (gosec)
+- Integration test job (optional, requires test server)",CI/CD,5,RECON-029,ci-cd;github-actions
+RECON-031,Tech Story,Medium,Write Unit Tests for API Client,"As a developer, I need comprehensive unit tests for the API client so that I can ensure reliability.","- Tests for all REST endpoints
+- Mocked HTTP server for testing
+- Test success cases
+- Test error cases (4xx, 5xx)
+- Test timeout handling
+- Test retry logic
+- Test authentication
+- Achieve 80%+ code coverage
+- Table-driven tests preferred",Testing,5,RECON-007,testing;unit-tests
+RECON-032,Tech Story,Medium,Write Unit Tests for Commands,"As a developer, I need unit tests for all Cobra commands so that I can ensure correct behavior.","- Tests for all command groups (program, scan, anomalies, config)
+- Mock API client for testing
+- Test flag parsing
+- Test validation logic
+- Test output formatting
+- Test error handling
+- Achieve 80%+ code coverage
+- Use golden files for complex output",Testing,8,RECON-009;RECON-010;RECON-011;RECON-012;RECON-013;RECON-014;RECON-015;RECON-016;RECON-017,testing;unit-tests
+RECON-033,Tech Story,Low,Write Integration Tests,"As a developer, I need integration tests so that I can verify end-to-end functionality with a real server.","- Integration test suite (tagged with +build integration)
+- Requires RECON_SERVER environment variable
+- Tests full user workflows (add program → scan → view anomalies)
+- Tests gRPC streaming
+- Docker Compose for test server (optional)
+- Cleanup after tests
+- Run in CI (optional, if test server available)
+- Documentation for running integration tests",Testing,5,RECON-031;RECON-032,testing;integration-tests
+RECON-034,Tech Story,Medium,Implement Version Command and Build Info,"As a developer, I need version information embedded in the binary so that users can identify which version they're running.","- Version command shows version, commit, build date
+- Version injected at build time via ldflags
+- --version flag on root command
+- Version follows semantic versioning
+- Build info includes Go version
+- Pretty formatted output
+- JSON output supported",Versioning,2,RECON-003,versioning;build
+RECON-035,User Story,Low,Add Shell Completion Support,"As a user, I want shell completion so that I can use tab completion for commands and flags.","- Completion command generates completion script
+- Support for bash, zsh, fish, powershell
+- Subcommand completion works
+- Flag completion works
+- Dynamic completion for --program-id (fetches from API)
+- Installation instructions in README
+- Documented in help text",CLI Enhancement,3,RECON-003,cli;completion
+RECON-036,Tech Story,Low,Create Example Usage Scripts,"As a developer, I need example scripts so that users can quickly understand how to use the CLI.","- Example scripts in examples/ directory
+- Basic workflow example
+- Advanced usage examples
+- CI/CD integration example
+- Scripting examples (parsing JSON output)
+- README in examples/ directory
+- All examples tested and working",Documentation,2,RECON-009;RECON-013;RECON-016,documentation;examples
+RECON-037,User Story,Medium,Implement Interactive Mode for Program Add,"As a user, I want an interactive mode when adding programs so that I don't have to remember all the flags.","- If no flags provided, enter interactive mode
+- Prompts for each field with validation
+- Shows examples for each field
+- Default values suggested (can press Enter to accept)
+- Confirmation before submitting
+- Option to cancel (Ctrl+C)
+- Shows created program on success
+- --non-interactive flag to force flag mode",Program Management,3,RECON-009,program;user-facing;enhancement
+RECON-038,Tech Story,Low,Implement Config File Validation,"As a developer, I need config validation so that users get clear errors for invalid configuration.","- Validate on load (config init, or any command)
+- Required fields: server, api-key
+- URL validation for server endpoints
+- Enum validation for output-format, log-level
+- Duration validation for timeout
+- Clear error messages with suggestions
+- Validation function with tests
+- Schema documentation",Configuration,2,RECON-002,configuration;validation
+RECON-039,Tech Story,Low,Setup Security Scanning,"As a developer, I need security scanning so that vulnerabilities are detected early.","- gosec integration in CI
+- Dependency scanning (govulncheck)
+- Run on every PR
+- Fail build on high severity issues
+- Regular scheduled scans
+- Results uploaded to GitHub Security tab
+- Documentation for local scanning",Security,3,RECON-030,security;scanning
+RECON-040,Tech Story,Low,Create Release Documentation,"As a developer, I need release documentation so that users know what's new and what's changed.","- CHANGELOG.md following Keep a Changelog format
+- Release notes template
+- Migration guides for breaking changes
+- Document release process in CONTRIBUTING.md
+- Automated changelog generation from commits (optional)
+- Version comparison links",Documentation,2,RECON-034,documentation;release
+RECON-041,User Story,Low,Add Quiet and Verbose Modes,"As a user, I want --quiet and --verbose flags so that I can control output verbosity.","- --quiet flag suppresses all non-essential output
+- --verbose flag shows detailed operation info
+- -q short flag for quiet
+- -v short flag for verbose
+- Respects --output json (no mixed output)
+- Works across all commands
+- Documented in root command help",CLI Enhancement,2,RECON-003,cli;enhancement
+RECON-042,User Story,Low,Implement Timeout Configuration,"As a user, I want to configure request timeouts so that I can handle slow networks.","- --timeout flag on commands making API calls
+- Global timeout in config file
+- Default timeout: 30 seconds
+- Separate timeout for gRPC streams
+- Clear error message on timeout
+- Retry on timeout (configurable)
+- Documentation of timeout behavior",Configuration,2,RECON-002;RECON-007,configuration;networking
+RECON-043,Tech Story,Medium,Add Request/Response Debugging,"As a developer, I need request/response debugging so that I can troubleshoot API issues.","- Debug mode logs all HTTP requests
+- Logs request method, URL, headers (sanitized)
+- Logs response status, headers, body
+- Enabled with --debug flag or log-level=debug
+- gRPC debugging support
+- Sanitize sensitive data (API keys)
+- Pretty-printed JSON in logs",Debugging,3,RECON-007;RECON-028,debugging;logging
+RECON-044,Tech Story,Low,Implement Pagination Support,"As a developer, I need pagination support so that large result sets can be handled efficiently.","- --limit flag for page size
+- --offset flag for page offset
+- --page and --per-page flags (alternative)
+- Total count displayed when available
+- Next/previous page hints
+- Works for: program list, scan list, anomalies list
+- Unit tests for pagination logic",API Enhancement,3,RECON-010;RECON-014;RECON-016,api;pagination
+RECON-045,User Story,Low,Add Color Output Control,"As a user, I want to control color output so that I can use the CLI in different environments.","- Auto-detect TTY for color support
+- --color flag: auto, always, never
+- --no-color flag (same as --color=never)
+- Respect NO_COLOR environment variable
+- Color config in config file
+- All colored output respects this setting
+- Works in pipes (no color by default)",CLI Enhancement,2,RECON-019,cli;ui;enhancement
+RECON-046,Tech Story,Medium,Implement Health Check Command,"As a developer, I need a health check command so that users can verify connectivity and configuration.","- 'recon-cli health' command
+- Checks REST API connectivity (GET /health)
+- Checks gRPC connectivity
+- Validates API key
+- Shows server version (if available)
+- Shows configuration summary
+- Detailed output with --verbose
+- Exit code 0 if healthy, 1 if unhealthy
+- Useful for CI/CD and monitoring",Diagnostics,3,RECON-003;RECON-007;RECON-022,diagnostics;health
+RECON-047,User Story,Low,Program Command - Update Program,"As a user, I want to run 'recon-cli program update --id <id>' so that I can modify program settings.","- Sends PATCH/PUT request to /api/v1/programs/:id
+- Flags: --name, --scope, --frequency, --active
+- Only updates provided fields
+- Confirmation of changes
+- Shows updated program details
+- Validation of inputs
+- Interactive mode support",Program Management,3,RECON-003;RECON-007;RECON-008,program;user-facing
+RECON-048,Tech Story,Low,Add User Agent String,"As a developer, I need a proper User-Agent header so that server administrators can identify CLI traffic.","- User-Agent: recontronic-cli/v1.0.0 (platform; go/version)
+- Include version from build info
+- Include platform (darwin, linux, windows)
+- Include Go version
+- Added to all HTTP requests
+- Configurable suffix in config (optional)
+- Documented",API Client,1,RECON-007;RECON-034,api;client
+RECON-049,Tech Story,Medium,Implement Connection Pooling and Keep-Alive,"As a developer, I need connection pooling so that API performance is optimized.","- HTTP client uses connection pooling
+- Keep-alive enabled
+- Configurable max connections per host
+- Configurable idle connection timeout
+- Connection reuse for gRPC
+- Performance improvement measurable
+- Unit tests verify behavior",Performance,3,RECON-007,performance;networking
+RECON-050,User Story,Low,Add Export Functionality,"As a user, I want to export data to files so that I can process results offline.","- 'recon-cli program list --export programs.json' saves to file
+- 'recon-cli anomalies list --export anomalies.csv' supports CSV
+- Export formats: JSON, YAML, CSV
+- Works with all list commands
+- File overwrite confirmation
+- --force flag to skip confirmation
+- Success message with file path",Data Export,3,RECON-016;RECON-010;RECON-014,export;enhancementRECON-051,User Story,Critical,Auth Command - User Registration,"As a user, I want to run 'recon-cli auth register' so that I can create an account on the Recontronic server.","- Interactive mode prompts for username, email, password
+- Password input is hidden (no echo to terminal)
+- Username validation: 3-50 alphanumeric characters
+- Email validation: valid email format
+- Password validation: 8-72 characters minimum
+- Sends POST request to /api/v1/auth/register
+- Displays success message with username
+- Clear error messages for validation failures
+- Handles server errors gracefully (409 if username/email exists)
+- Example in help text",Authentication,5,RECON-003;RECON-007,auth;user-facing;critical
+RECON-052,User Story,Critical,Auth Command - User Login,"As a user, I want to run 'recon-cli auth login' so that I can authenticate and receive an API key.","- Interactive mode prompts for username and password
+- Password input is hidden (no echo to terminal)
+- Sends POST request to /api/v1/auth/login
+- Receives API key in response (format: rct_...)
+- Automatically saves API key to ~/.recon-cli/config.yaml
+- Sets config file permissions to 0600 (owner read/write only)
+- Displays success message with reminder to keep key secure
+- Shows warning that key won't be shown again
+- Clear error messages for invalid credentials (401)
+- Option to save to custom location with --config flag",Authentication,5,RECON-003;RECON-007;RECON-002,auth;user-facing;critical
+RECON-053,User Story,High,Auth Command - Who Am I,"As a user, I want to run 'recon-cli auth whoami' so that I can verify my current authentication status.","- Sends GET request to /api/v1/auth/me with API key
+- Displays user information (username, email, account status)
+- Shows API key prefix being used
+- Formatted output (table/json/yaml)
+- Clear error if not authenticated (401)
+- Suggests 'recon-cli auth login' if not authenticated
+- Shows when account was created
+- Exit code 0 if authenticated, 1 if not",Authentication,2,RECON-003;RECON-007;RECON-052,auth;user-facing
+RECON-054,User Story,Medium,Auth Command - Create API Key,"As a user, I want to run 'recon-cli auth keys create' so that I can generate additional API keys for different environments.","- Prompts for key name (optional, defaults to timestamp)
+- Optional --expires-in flag (e.g., 90d, 6m, 1y)
+- Sends POST request to /api/v1/auth/keys
+- Displays new API key (shown only once!)
+- Warning message that key won't be shown again
+- Saves to config with --save flag
+- Option to copy to clipboard (if available)
+- JSON output includes key_id for reference
+- Example in help text",Authentication,3,RECON-003;RECON-007;RECON-052,auth;user-facing
+RECON-055,User Story,Medium,Auth Command - List API Keys,"As a user, I want to run 'recon-cli auth keys list' so that I can view all my API keys and their status.","- Sends GET request to /api/v1/auth/keys
+- Table shows: ID, Name, Key Prefix, Expires At, Last Used, Status
+- Color coding for status (green=active, red=revoked, yellow=expired)
+- Relative timestamps for Last Used (2 hours ago) with --relative flag
+- Sort by --sort-by (id, name, created, last-used)
+- Filter by --active-only flag
+- Shows total count
+- Indicates which key is currently in use (matches config)
+- JSON/YAML output supported",Authentication,3,RECON-003;RECON-007;RECON-052,auth;user-facing
+RECON-056,User Story,Medium,Auth Command - Revoke API Key,"As a user, I want to run 'recon-cli auth keys revoke' so that I can deactivate compromised or unused keys.","- Requires --id flag or --name flag
+- Confirmation prompt: 'Are you sure?' (skip with --yes flag)
+- Displays key name/prefix in confirmation
+- Sends DELETE request to /api/v1/auth/keys/{id}
+- Success message on revocation
+- Warning if revoking currently active key
+- Suggests generating new key if revoking active key
+- Error handling for not found (404)
+- Dry run mode with --dry-run",Authentication,2,RECON-003;RECON-007;RECON-052,auth;user-facing
+RECON-057,User Story,Low,Auth Command - Logout,"As a user, I want to run 'recon-cli auth logout' so that I can remove my API key from the local config.","- Removes api_key from ~/.recon-cli/config.yaml
+- Optional --revoke flag to also revoke key on server
+- Confirmation prompt if --revoke is used
+- Shows which key is being removed (prefix)
+- Success message confirming logout
+- Config file remains (only api_key removed)
+- Suggests 'auth login' to re-authenticate
+- Works even if config file doesn't exist (no error)",Authentication,2,RECON-003;RECON-002,auth;user-facing
+RECON-058,Tech Story,High,Implement Secure Password Input,"As a developer, I need secure password input so that passwords are not visible on the terminal.","- Use terminal package for hidden input (golang.org/x/term)
+- No echo to terminal during password entry
+- Works on all platforms (Windows, macOS, Linux)
+- Handles Ctrl+C gracefully
+- Shows 'Password: ' prompt
+- Confirm password option for registration
+- Password mismatch detection (if confirmation)
+- Unit tests for password validation
+- Integration tests for interactive input",Authentication,3,RECON-051;RECON-052,auth;security
+RECON-059,Tech Story,High,Implement API Key Storage with Secure Permissions,"As a developer, I need to store API keys securely so that they can't be accessed by other users on the system.","- Config file created at ~/.recon-cli/config.yaml
+- File permissions set to 0600 (chmod 600)
+- Directory permissions set to 0700 (chmod 700)
+- Ownership verification (file owned by current user)
+- Warning if permissions are too open
+- Auto-fix permissions on read if they're wrong
+- Works on all platforms (Windows uses different approach)
+- Unit tests for permission setting/checking",Configuration,3,RECON-002;RECON-052,config;security
+RECON-060,Tech Story,Medium,Implement Authentication Middleware for REST Client,"As a developer, I need authentication middleware so that API requests automatically include the API key.","- Middleware adds Authorization header to all requests
+- Format: 'Bearer {api_key}'
+- Only adds if api_key is configured
+- Skips for public endpoints (register, login)
+- Logs sanitized headers in debug mode (hides key value)
+- Tests for middleware behavior
+- Error handling if key is missing for protected endpoint
+- Clear error message suggesting 'auth login'",API Client,3,RECON-007;RECON-052,api;auth
+RECON-061,Tech Story,Low,Implement API Key Validation,"As a developer, I need API key validation so that users get immediate feedback on invalid keys.","- Validate key format (starts with 'rct_')
+- Check minimum length (at least 20 characters)
+- Base64 decoding validation
+- Validation on config set
+- Validation on config load
+- Clear error messages for invalid format
+- Suggests re-running 'auth login' if invalid
+- Unit tests for validation logic",Validation,2,RECON-002;RECON-052,validation;auth
+RECON-062,User Story,Low,Auth Command - Rotate API Key,"As a user, I want to run 'recon-cli auth keys rotate' so that I can easily replace my current key with a new one.","- Creates new API key with same name + ' (Rotated)'
+- Automatically updates config with new key
+- Revokes old key after successful update
+- Atomic operation (rollback if new key creation fails)
+- Confirmation prompt before rotating
+- Shows old and new key prefixes
+- Success message with new key info
+- Option to keep old key with --keep-old flag
+- Example in help text",Authentication,3,RECON-003;RECON-007;RECON-052;RECON-054;RECON-056,auth;user-facing

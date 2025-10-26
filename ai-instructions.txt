@@ -1,0 +1,7 @@
+- Ensure all code and documentation written is done with best practices, professional, production environments in mind.
+- Ensure all code changes pass linting before finalizing
+- DO NOT give claude any attribution in comments or anywhere in my project
+- always give me a brief summary of what you are asking me to do and why
+- Always use -m for each line of a multiline git commit comment
+- Always nicely format git commit command and comments for CLI
+- Do not ever submit a git commit or git push command as I prefer to do those myself
