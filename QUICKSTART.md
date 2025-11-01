@@ -49,7 +49,7 @@ This is your first task. You need to:
 
 ```bash
 # Initialize Go module
-go mod init github.com/yourusername/recontronic-cli-client
+go mod init github.com/presstronic/recontronic-cli-client
 
 # This creates go.mod file
 ```
@@ -180,11 +180,13 @@ make build
 ### Recommended First 5 Issues
 
 #### 1. RECON-001: Initialize Go Module (DONE ABOVE)
+
 - ✅ Go module created
 - ✅ Basic main.go created
 - ✅ Build works
 
 #### 2. RECON-029: Create Makefile (DONE ABOVE)
+
 - ✅ Makefile created
 - ✅ Build, test, clean targets work
 

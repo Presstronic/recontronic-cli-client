@@ -48,6 +48,10 @@ The CLI provides tools for:
 
 		return nil
 	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// If no subcommand is provided, start interactive mode
+		return startInteractiveMode()
+	},
 }
 
 // Execute runs the root command
