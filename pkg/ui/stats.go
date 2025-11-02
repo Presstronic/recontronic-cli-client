@@ -23,11 +23,11 @@ type DashboardStats struct {
 
 // SubdomainResult represents the structure of subdomain JSON files
 type SubdomainResult struct {
-	Domain         string      `json:"domain"`
-	Timestamp      time.Time   `json:"timestamp"`
-	TotalUnique    int         `json:"total_unique"`
-	TotalAlive     int         `json:"total_alive,omitempty"`
-	Subdomains     []Subdomain `json:"subdomains"`
+	Domain      string      `json:"domain"`
+	Timestamp   time.Time   `json:"timestamp"`
+	TotalUnique int         `json:"total_unique"`
+	TotalAlive  int         `json:"total_alive,omitempty"`
+	Subdomains  []Subdomain `json:"subdomains"`
 }
 
 // Subdomain represents a single subdomain entry
@@ -95,8 +95,8 @@ func GatherStats() (*DashboardStats, error) {
 
 			// Parse subdomain JSON files
 			if filepath.Ext(file.Name()) == ".json" &&
-			   len(file.Name()) > 11 &&
-			   file.Name()[:11] == "subdomains_" {
+				len(file.Name()) > 11 &&
+				file.Name()[:11] == "subdomains_" {
 
 				data, err := os.ReadFile(filePath)
 				if err != nil {

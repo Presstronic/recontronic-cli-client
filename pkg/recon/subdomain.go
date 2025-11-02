@@ -9,12 +9,12 @@ import (
 
 // SubdomainResults represents the complete subdomain enumeration results
 type SubdomainResults struct {
-	Domain       string                 `json:"domain"`
-	Timestamp    time.Time              `json:"timestamp"`
-	SourcesUsed  []string               `json:"sources_used"`
-	TotalUnique  int                    `json:"total_unique"`
-	Subdomains   []Subdomain            `json:"subdomains"`
-	Summary      map[string]int         `json:"summary"`
+	Domain      string         `json:"domain"`
+	Timestamp   time.Time      `json:"timestamp"`
+	SourcesUsed []string       `json:"sources_used"`
+	TotalUnique int            `json:"total_unique"`
+	Subdomains  []Subdomain    `json:"subdomains"`
+	Summary     map[string]int `json:"summary"`
 }
 
 // Subdomain represents a single subdomain entry
@@ -22,6 +22,7 @@ type Subdomain struct {
 	Name         string                 `json:"name"`
 	DiscoveredBy []string               `json:"discovered_by"`
 	FirstSeen    time.Time              `json:"first_seen"`
+	Verified     *VerificationResult    `json:"verified,omitempty"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 

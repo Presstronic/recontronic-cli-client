@@ -157,7 +157,7 @@ func runReconSubdomain(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Warning: failed to log activity: %v\n", err)
 	}
 
-	fmt.Println("\nNext: Run 'recon verify", domain, "' to check which subdomains are alive (coming soon)")
+	fmt.Println("\nNext: Run 'recon verify", domain, "' to check which subdomains are alive")
 
 	return nil
 }

@@ -70,8 +70,8 @@ func GenerateSuggestions() ([]Suggestion, error) {
 
 			// Find subdomain files
 			if filepath.Ext(file.Name()) == ".json" &&
-			   len(file.Name()) > 11 &&
-			   file.Name()[:11] == "subdomains_" {
+				len(file.Name()) > 11 &&
+				file.Name()[:11] == "subdomains_" {
 
 				info, err := os.Stat(filePath)
 				if err != nil {
