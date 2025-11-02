@@ -116,7 +116,7 @@ func init() {
 func runAuthRegister(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	fmt.Println("Register a new Recontronic account\n")
+	fmt.Println("Register a new Recontronic account")
 
 	username, err := ui.ReadInput("Username: ")
 	if err != nil {
@@ -170,7 +170,7 @@ func runAuthRegister(cmd *cobra.Command, args []string) error {
 func runAuthLogin(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	fmt.Println("Login to Recontronic\n")
+	fmt.Println("Login to Recontronic")
 
 	username, err := ui.ReadInput("Username: ")
 	if err != nil {

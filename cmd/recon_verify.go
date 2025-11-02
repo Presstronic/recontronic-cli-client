@@ -42,7 +42,7 @@ func runReconVerify(cmd *cobra.Command, args []string) error {
 	domain := args[0]
 
 	fmt.Printf("Verifying subdomains for %s\n", domain)
-	fmt.Println("Mode: Passive verification (DNS + HTTP probing)\n")
+	fmt.Println("Mode: Passive verification (DNS + HTTP probing)")
 
 	// Load latest subdomain results
 	var results recon.SubdomainResults

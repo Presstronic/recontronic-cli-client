@@ -13,13 +13,63 @@ Recontronic CLI is a command-line interface for managing continuous reconnaissan
 
 ## Build & Development Commands
 
-### Building
+**NOTE:** The project now includes a comprehensive Makefile. Run `make help` to see all available targets.
+
+### Building with Makefile (Recommended)
+```bash
+# Build for current platform
+make build
+
+# Build for all platforms (Linux, macOS, Windows)
+make build-all
+
+# Build for specific platform
+make build-linux
+make build-darwin
+make build-windows
+
+# Clean build artifacts
+make clean
+
+# Install to GOPATH/bin
+make install
+```
+
+### Testing with Makefile (Recommended)
+```bash
+# Run all tests
+make test
+
+# Run tests with verbose output
+make test-verbose
+
+# Run tests with coverage report
+make test-coverage
+
+# Run fmt, vet, and test
+make check
+```
+
+### Code Quality
+```bash
+# Format code
+make fmt
+
+# Run go vet
+make vet
+
+# Run golangci-lint (if installed)
+make lint
+```
+
+### Manual Build Commands (Alternative)
 ```bash
 # Build for current platform
 go build -o recon-cli main.go
 
 # Run without building
 go run main.go [command]
+make run  # Or use Makefile
 
 # Clean build artifacts
 rm -f recon-cli
@@ -28,7 +78,7 @@ rm -f recon-cli
 ./scripts/create-sample-data.sh
 ```
 
-### Testing
+### Manual Testing (Alternative)
 ```bash
 # Run all tests
 go test ./...

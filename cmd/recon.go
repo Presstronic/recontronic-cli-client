@@ -58,7 +58,7 @@ func runReconSubdomain(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("Finding subdomains for %s\n", domain)
-	fmt.Println("Mode: Passive reconnaissance (safe, no active scanning)\n")
+	fmt.Println("Mode: Passive reconnaissance (safe, no active scanning)")
 
 	// Detect available sources (in order of speed/reliability)
 	var sources []recon.SubdomainSource

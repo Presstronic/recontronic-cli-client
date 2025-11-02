@@ -30,10 +30,16 @@ The Recontronic CLI is the primary interface for interacting with the Recontroni
 git clone https://github.com/yourusername/recontronic-cli-client.git
 cd recontronic-cli-client
 
-# Build the binary
+# Build the binary (using Makefile - recommended)
+make build
+
+# Or build manually
 go build -o recon-cli main.go
 
-# Move to your PATH (optional)
+# Install to GOPATH/bin (using Makefile)
+make install
+
+# Or move to your PATH manually
 sudo mv recon-cli /usr/local/bin/
 ```
 
