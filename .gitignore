@@ -56,3 +56,7 @@ temp/
 coverage.txt
 coverage.html
 *.coverprofile
+
+# AI assistant working files
+SESSION.md
+ai-instructions.txt
