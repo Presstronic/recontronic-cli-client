@@ -10,7 +10,7 @@ Recontronic CLI is a command-line interface for managing continuous reconnaissan
 - Authentication system fully implemented (register, login, API key management)
 - Interactive REPL mode with dashboard
 - Activity logging and smart suggestions
-- Reconnaissance tools: subdomain enumeration, HTTP verification, WHOIS lookup
+- Reconnaissance tools: subdomain enumeration, HTTP verification, WHOIS lookup, DNS enumeration
 
 ## Build & Development Commands
 
@@ -109,6 +109,7 @@ go test -tags=integration ./...
 ./recon-cli recon subdomain example.com
 ./recon-cli recon verify example.com
 ./recon-cli recon whois example.com
+./recon-cli recon dns example.com
 ./recon-cli recon results list
 ./recon-cli recon results export example.com --format csv
 ```
@@ -132,7 +133,7 @@ The CLI features an interactive dashboard that displays on startup, providing im
 **Activity Logging:**
 - Location: `~/.recon-cli/activity.log`
 - Format: JSON Lines (one JSON object per line)
-- Auto-logged: All recon operations (subdomain enum, verify, dns, whois)
+- Auto-logged: All recon operations (subdomain enum, verify, whois, dns)
 - Functions: `ui.LogActivity()`, `ui.GetRecentActivity()`
 
 **Statistics Gathering:**
@@ -182,6 +183,7 @@ The CLI features an interactive dashboard that displays on startup, providing im
 - `cmd/recon_subdomain.go` - Subdomain enumeration (integrated into recon.go)
 - `cmd/recon_verify.go` - HTTP/HTTPS verification
 - `cmd/recon_whois.go` - WHOIS domain lookup
+- `cmd/recon_dns.go` - DNS enumeration (A, AAAA, MX, TXT, NS, CNAME records)
 - `cmd/recon_results.go` - Results management (list, view, export)
 
 ### Configuration System
@@ -249,12 +251,14 @@ Provides standalone reconnaissance tools for passive information gathering:
 - `subdomain.go` - Multi-source subdomain enumeration (crt.sh, subfinder, amass, assetfinder)
 - `verify.go` - DNS resolution and HTTP/HTTPS verification with title extraction
 - `whois.go` - WHOIS domain information lookup and parsing
+- `dns.go` - DNS record enumeration with subdomain takeover detection
 - `results.go` - Results management, filtering, and querying
 
 **Key Features:**
 - **Subdomain Enumeration:** Multi-source passive discovery with tool detection
 - **HTTP Verification:** Concurrent DNS + HTTP probing with status codes and HTML titles
 - **WHOIS Lookup:** Domain registration info (registrar, dates, nameservers, status)
+- **DNS Enumeration:** A, AAAA, CNAME, MX, TXT, NS records with cloud provider identification
 - **Results Management:** List, view, filter, and export results in CSV/JSON/Markdown
 - **Storage:** JSON files with timestamps, organized by domain
 - **Activity Logging:** All operations logged to `~/.recon-cli/activity.log`
@@ -272,6 +276,42 @@ Provides standalone reconnaissance tools for passive information gathering:
 ./recon-cli recon whois example.com
 ./recon-cli recon whois example.com --json
 ./recon-cli recon whois example.com --timeout 60s
+```
+
+**DNS Enumeration Implementation:**
+- Loads subdomain results and queries DNS for each (alive-only by default)
+- Concurrent DNS queries with configurable concurrency (default: 10)
+- Per-query timeout with context cancellation (default: 5s)
+- Queries multiple record types: A, AAAA, CNAME, MX, TXT, NS
+- Subdomain takeover detection for 15+ vulnerable services (herokuapp, github.io, s3, etc.)
+- Cloud provider identification (AWS, Azure, GCP, Cloudflare, Akamai, Fastly, etc.)
+- Security record detection (SPF, DMARC, DKIM in TXT records)
+- Results saved to `~/.recon-cli/results/<domain>/dns_<timestamp>.json`
+
+**DNS Summary Statistics:**
+- Total records by type (A, AAAA, MX, TXT, CNAME, NS)
+- Unique IP count
+- Subdomain takeover risks detected
+- Cloud providers identified
+- Mail server providers
+- Security records status
+
+**Example Usage:**
+```bash
+# DNS enumeration (alive hosts only by default)
+./recon-cli recon dns example.com
+
+# Query all subdomains (not just alive)
+./recon-cli recon dns example.com --alive-only=false
+
+# Query specific record types
+./recon-cli recon dns example.com --types A,AAAA,CNAME
+
+# High-speed scanning
+./recon-cli recon dns example.com --concurrency 50 --timeout 3s
+
+# Disable takeover checking
+./recon-cli recon dns example.com --check-takeover=false
 ```
 
 ### User Input System

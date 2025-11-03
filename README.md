@@ -293,65 +293,81 @@ Filters: alive-only
 
 ---
 
-### Phase 2: Deep Enumeration 🚧 COMING NEXT
+### Phase 2: Deep Enumeration ✅ IMPLEMENTED
 
-#### Step 5: DNS Enumeration (Issue #67) - IN DEVELOPMENT
+#### Step 5: DNS Enumeration
 **Get detailed DNS records for all alive subdomains**
 
 ```bash
-# DNS enumeration for all alive subdomains (COMING SOON)
+# DNS enumeration for all alive subdomains (default)
 ./recon-cli recon dns example.com
 
 # Query specific record types
 ./recon-cli recon dns example.com --types A,AAAA,MX,TXT
 
 # DNS enumeration for all subdomains (not just alive)
-./recon-cli recon dns example.com --all
+./recon-cli recon dns example.com --alive-only=false
 
 # Export DNS results to CSV
 ./recon-cli recon results export example.com --type dns --format csv
 
-# Check for subdomain takeover opportunities
+# High-speed scanning
+./recon-cli recon dns example.com --concurrency 50 --timeout 3s
+
+# Check for subdomain takeover opportunities (enabled by default)
 ./recon-cli recon dns example.com --check-takeover
 ```
 
-**Sample Output (PLANNED):**
+**Sample Output:**
 ```
-Enumerating DNS records for example.com
+Enumerating DNS records for basecamp.com
 Mode: Passive DNS enumeration
 
-Progress: 156/156 subdomains queried (100%) [12.3s elapsed]
+✓ Results saved to ~/.recon-cli/results/basecamp.com/
 
 Summary:
-  Subdomains queried: 156 (alive only)
-  A records: 142
-  AAAA records: 89
-  MX records: 23
-  TXT records: 67
-  CNAME records: 45
-  NS records: 8
+  Subdomains queried: 23
+  A records: 50
+  AAAA records: 0
+  CNAME records: 3
+  MX records: 3
+  TXT records: 8
+  NS records: 10
+  Unique IPs: 18
+  Duration: 3s
 
 Key Findings:
-  ⚠ Potential subdomain takeover: old-app.example.com → herokuapp.com (404)
-  ☁ Cloud providers detected: AWS (45), Azure (12), GCP (8)
-  📧 Mail servers: 3 unique MX records
-  🔒 Security records: SPF (yes), DMARC (yes), DKIM (yes)
+  ✓ No obvious subdomain takeover risks detected
+  ☁️  Cloud providers detected: Cloudflare
+  📧 Mail servers found: 3 MX records
+      Providers: basecamp.com
+  🔒 Security records: SPF (yes), DMARC (no), DKIM (no)
 
-✓ Results saved to ~/.recon-cli/results/example.com/dns_20251103_122045.json
+Sample DNS Records:
+  SUBDOMAIN                 RECORD TYPE  VALUE                     CLOUD
+  3.basecamp.com            A            104.18.12.81              Cloudflare
+  www.updates.basecamp.com  CNAME        ext-cust.squarespace.com
+  storage.basecamp.com      A            104.18.17.127             Cloudflare
+  ... and 13 more records (see JSON results for complete data)
 ```
 
-**What This Will Provide:**
-- **A/AAAA Records:** IP addresses (IPv4/IPv6) - map subdomains to actual hosts
+**What This Provides:**
+- **A/AAAA Records:** IP addresses (IPv4/IPv6) - map subdomains to actual hosts for port scanning
 - **MX Records:** Mail servers - identify email infrastructure targets
-- **TXT Records:** SPF, DMARC, verification records - find security misconfigurations
+- **TXT Records:** SPF, DMARC, DKIM verification records - find security misconfigurations
 - **NS Records:** Authoritative nameservers - understand DNS infrastructure
-- **CNAME Records:** Subdomain aliases - **find potential subdomain takeover opportunities**
+- **CNAME Records:** Subdomain aliases - **detect potential subdomain takeover opportunities** 💰
+- **Cloud Providers:** Automatic identification (AWS, Azure, GCP, Cloudflare, Akamai, Fastly)
+- **Takeover Detection:** Checks for 15+ vulnerable services (herokuapp, github.io, s3, azurewebsites, etc.)
+- **Security Analysis:** Detects SPF, DMARC, DKIM configurations
 
 **Why This Matters:**
-- Maps subdomains to IP addresses for port scanning
-- Identifies shared infrastructure (multiple domains on same IP)
-- Discovers cloud providers (AWS, Azure, GCP)
-- Finds dangling CNAMEs = potential subdomain takeovers 💰
+- 🎯 Maps subdomains to IP addresses ready for port scanning
+- 🔍 Identifies shared infrastructure (multiple domains on same IP = similar attack surface)
+- ☁️ Discovers cloud providers (AWS, Azure, GCP = different security models)
+- 💰 Finds dangling CNAMEs = potential subdomain takeovers (HIGH/CRITICAL severity)
+- 📧 Identifies mail infrastructure for email security testing
+- 🚨 Detects security misconfigurations (missing DMARC = email spoofing)
 
 ---
 
@@ -498,21 +514,36 @@ Here's a complete reconnaissance session:
 ./recon-cli recon whois tesla.com
 # Output: Registrar, nameservers, expiry date
 
-# 4. Export alive hosts for further testing
-./recon-cli recon results export tesla.com --format csv --alive-only
-# Output: tesla_alive_hosts.csv with 156 entries
+# 4. Get DNS records for alive hosts
+./recon-cli recon dns tesla.com
+# Output: 142 A records, 18 unique IPs, cloud providers detected
+#         Potential subdomain takeover opportunities identified
 
-# 5. Next step (coming soon): Get DNS records
-# ./recon-cli recon dns tesla.com
-# Will map all IPs, find MX records, identify cloud providers
+# 5. Export everything for further testing
+./recon-cli recon results export tesla.com --format csv --alive-only
+# Output: tesla_alive_hosts.csv with 156 entries + all DNS data
+
+# 6. Ready to attack!
+# You now have:
+# - 156 alive subdomains
+# - 142 with IP addresses
+# - Cloud provider information
+# - Potential subdomain takeovers to exploit
+# - Mail infrastructure to test
 ```
 
 **What You'll Have:**
-- ✅ Complete subdomain inventory
-- ✅ List of alive/accessible hosts with status codes
+- ✅ Complete subdomain inventory (808 total)
+- ✅ List of alive/accessible hosts with status codes (156 alive)
 - ✅ Domain registration information
-- ✅ Exportable data for tools like Burp Suite, nuclei, etc.
-- 🚧 DNS records and IP mappings (coming next)
+- ✅ DNS records and IP mappings (142 IPs)
+- ✅ Cloud provider identification (AWS, Azure, GCP, Cloudflare, etc.)
+- ✅ Subdomain takeover opportunities detected
+- ✅ Mail server infrastructure mapped
+- ✅ Security configuration analysis (SPF, DMARC, DKIM)
+- ✅ Exportable data for tools like Burp Suite, nuclei, nmap, etc.
+
+**You're now ready for Phase 3: Active Scanning (port scanning, vulnerability scanning, etc.)**
 
 ---
 
