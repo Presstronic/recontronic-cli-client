@@ -88,6 +88,434 @@ recon-cli anomalies list --min-priority 70 --unreviewed
 recon-cli dashboard
 ```
 
+## Bug Bounty Reconnaissance Workflow
+
+The CLI provides a complete reconnaissance workflow for bug bounty hunting. Follow these steps in order for best results:
+
+### Phase 1: Discovery ✅ IMPLEMENTED
+
+#### Step 1: Subdomain Enumeration
+**Find all subdomains for your target domain**
+
+```bash
+# Basic subdomain enumeration
+./recon-cli recon subdomain example.com
+
+# With custom timeout for slow tools
+./recon-cli recon subdomain example.com --timeout 15m
+```
+
+**Sample Output:**
+```
+Finding subdomains for example.com
+Mode: Passive reconnaissance (safe, no active scanning)
+
+Running crt.sh...
+✓ crt.sh found 445 subdomains (3.2s)
+
+Running subfinder...
+✓ subfinder found 789 subdomains (12.4s)
+
+Running assetfinder...
+✓ assetfinder found 234 subdomains (8.1s)
+
+Summary:
+  Total unique subdomains: 808
+  Sources used: crt.sh, subfinder, assetfinder
+
+✓ Results saved to ~/.recon-cli/results/example.com/subdomains_20251103_120534.json
+```
+
+- **Tools Used:** crt.sh, subfinder, amass, assetfinder
+- **Output:** List of all discovered subdomains
+- **Saved To:** `~/.recon-cli/results/example.com/subdomains_*.json`
+- **Typical Results:** 100-1000+ subdomains depending on target size
+
+#### Step 2: HTTP/HTTPS Verification
+**Find which subdomains are alive and accessible**
+
+```bash
+# Basic verification (default: 10 concurrent, 10s timeout)
+./recon-cli recon verify example.com
+
+# Faster scanning with higher concurrency
+./recon-cli recon verify example.com --concurrency 50 --timeout 5s
+
+# Conservative scanning (slower but more reliable)
+./recon-cli recon verify example.com --concurrency 5 --timeout 30s
+```
+
+**Sample Output:**
+```
+Verifying subdomains for example.com
+Mode: Passive verification (DNS + HTTP probing)
+
+Progress: 156/808 verified (19.3%) [29.4s elapsed]
+
+Summary:
+  Total subdomains: 808
+  Alive: 156 (19.3%)
+  Dead: 652 (80.7%)
+  Duration: 45.2s
+
+Sample alive hosts:
+  https://www.example.com - 200 OK - "Example Domain - Official Site"
+  https://api.example.com - 403 Forbidden - "Access Denied"
+  https://mail.example.com - 200 OK - "Webmail Login"
+  https://admin.example.com - 401 Unauthorized - "Authentication Required"
+  http://dev.example.com - 200 OK - "Development Server"
+
+✓ Results updated in ~/.recon-cli/results/example.com/subdomains_20251103_120534.json
+```
+
+- **What It Does:**
+  - DNS resolution check
+  - HTTP/HTTPS probing (tries HTTPS first, falls back to HTTP)
+  - Extracts HTTP status codes
+  - Captures HTML page titles
+  - Measures response times
+- **Output:** List of alive hosts with status codes and titles
+- **Typical Results:** 10-30% of subdomains are usually alive
+
+#### Step 3: WHOIS Lookup
+**Get domain registration and infrastructure information**
+
+```bash
+# Basic WHOIS lookup
+./recon-cli recon whois example.com
+
+# Output as JSON for parsing
+./recon-cli recon whois example.com --json
+
+# Show raw WHOIS output
+./recon-cli recon whois example.com --raw
+
+# Custom timeout (default: 30s)
+./recon-cli recon whois example.com --timeout 60s
+```
+
+**Sample Output:**
+```
+Looking up WHOIS information for example.com
+Mode: Passive reconnaissance (WHOIS query)
+
+✓ Results saved to ~/.recon-cli/results/example.com/
+
+Domain: example.com
+Registrar: MarkMonitor Inc.
+Created: 1995-08-14T04:00:00Z
+Updated: 2024-08-13T07:01:38Z
+Expires: 2025-08-13T04:00:00Z
+
+Name Servers:
+  - a.iana-servers.net
+  - b.iana-servers.net
+
+Status:
+  - clientDeleteProhibited
+  - clientTransferProhibited
+  - clientUpdateProhibited
+  - serverDeleteProhibited
+  - serverTransferProhibited
+  - serverUpdateProhibited
+
+Registrar URL: http://www.markmonitor.com
+```
+
+- **Information Gathered:**
+  - Registrar details
+  - Creation, update, and expiry dates
+  - Authoritative nameservers
+  - Domain status (locked, unlocked, etc.)
+- **Why It Matters:** Helps validate scope and understand domain infrastructure
+
+#### Step 4: View & Export Results
+**Organize and export your findings**
+
+```bash
+# List all results for all domains
+./recon-cli recon results list
+
+# View all subdomains for a specific domain
+./recon-cli recon results view example.com
+
+# View only alive subdomains
+./recon-cli recon results view example.com --alive-only
+
+# Filter by HTTP status code
+./recon-cli recon results view example.com --status 200
+
+# Filter by discovery source
+./recon-cli recon results view example.com --source subfinder
+
+# Limit results
+./recon-cli recon results view example.com --alive-only --limit 50
+
+# Export to CSV (great for spreadsheet analysis)
+./recon-cli recon results export example.com --format csv --alive-only
+
+# Export to JSON (for tool integration)
+./recon-cli recon results export example.com --format json --alive-only
+
+# Export to Markdown (for reporting)
+./recon-cli recon results export example.com --format markdown
+
+# Export with custom output path
+./recon-cli recon results export example.com --format csv --output ~/reports/example.csv
+
+# Combine multiple filters
+./recon-cli recon results export example.com --format csv --alive-only --status 200
+```
+
+**Sample Output (list):**
+```
+Results for all domains:
+
+example.com/
+  2025-11-03 12:05  subdomains  (808 total, 156 alive)  ✓ verified
+  2025-11-03 12:15  whois       Registrar: MarkMonitor Inc.
+
+tesla.com/
+  2025-11-01 01:40  subdomains  (808 total)  ⚠ not verified
+
+basecamp.com/
+  2025-11-01 02:50  subdomains  (133 total, 23 alive)  ✓ verified
+```
+
+**Sample Output (export CSV):**
+```
+Exporting results for example.com...
+Format: CSV
+Filters: alive-only
+
+✓ Exported 156 subdomains to ~/.recon-cli/exports/example.com_20251103_121830.csv
+```
+
+---
+
+### Phase 2: Deep Enumeration 🚧 COMING NEXT
+
+#### Step 5: DNS Enumeration (Issue #67) - IN DEVELOPMENT
+**Get detailed DNS records for all alive subdomains**
+
+```bash
+# DNS enumeration for all alive subdomains (COMING SOON)
+./recon-cli recon dns example.com
+
+# Query specific record types
+./recon-cli recon dns example.com --types A,AAAA,MX,TXT
+
+# DNS enumeration for all subdomains (not just alive)
+./recon-cli recon dns example.com --all
+
+# Export DNS results to CSV
+./recon-cli recon results export example.com --type dns --format csv
+
+# Check for subdomain takeover opportunities
+./recon-cli recon dns example.com --check-takeover
+```
+
+**Sample Output (PLANNED):**
+```
+Enumerating DNS records for example.com
+Mode: Passive DNS enumeration
+
+Progress: 156/156 subdomains queried (100%) [12.3s elapsed]
+
+Summary:
+  Subdomains queried: 156 (alive only)
+  A records: 142
+  AAAA records: 89
+  MX records: 23
+  TXT records: 67
+  CNAME records: 45
+  NS records: 8
+
+Key Findings:
+  ⚠ Potential subdomain takeover: old-app.example.com → herokuapp.com (404)
+  ☁ Cloud providers detected: AWS (45), Azure (12), GCP (8)
+  📧 Mail servers: 3 unique MX records
+  🔒 Security records: SPF (yes), DMARC (yes), DKIM (yes)
+
+✓ Results saved to ~/.recon-cli/results/example.com/dns_20251103_122045.json
+```
+
+**What This Will Provide:**
+- **A/AAAA Records:** IP addresses (IPv4/IPv6) - map subdomains to actual hosts
+- **MX Records:** Mail servers - identify email infrastructure targets
+- **TXT Records:** SPF, DMARC, verification records - find security misconfigurations
+- **NS Records:** Authoritative nameservers - understand DNS infrastructure
+- **CNAME Records:** Subdomain aliases - **find potential subdomain takeover opportunities**
+
+**Why This Matters:**
+- Maps subdomains to IP addresses for port scanning
+- Identifies shared infrastructure (multiple domains on same IP)
+- Discovers cloud providers (AWS, Azure, GCP)
+- Finds dangling CNAMEs = potential subdomain takeovers 💰
+
+---
+
+### Phase 3: Active Scanning 📋 PLANNED
+
+#### Step 6: Port Scanning
+**Identify open ports and running services**
+
+```bash
+# Port scanning (PLANNED - not yet implemented)
+# Use external tools for now:
+
+# Fast port scan with naabu (recommended)
+cat ~/.recon-cli/exports/example.com_alive.txt | naabu -p 80,443,8080,8443 -o ports.txt
+
+# Full port scan with nmap
+nmap -iL alive_hosts.txt -p- -oA nmap_results
+
+# Quick common ports scan
+masscan -iL alive_ips.txt -p 80,443,8080,8443,3000,8000,9000 --rate 1000
+```
+
+**Common Targets:**
+- **Web:** 80, 443, 8080, 8443, 8000, 3000
+- **Admin panels:** 9000, 10000
+- **Databases:** 3306 (MySQL), 5432 (PostgreSQL), 27017 (MongoDB)
+- **APIs:** 8081, 8082, 9090
+- **Security Note:** ⚠️ Only scan assets within scope!
+
+#### Step 7: Technology Detection
+**Identify frameworks, libraries, and technologies**
+
+```bash
+# Technology detection (PLANNED - not yet implemented)
+# Use external tools for now:
+
+# Using httpx with technology detection
+cat ~/.recon-cli/exports/example.com_alive.txt | httpx -td -title -status-code -o tech_stack.txt
+
+# Using wappalyzer
+wappalyzer https://example.com
+
+# Check headers and identify technologies
+curl -I https://example.com
+```
+
+**What You'll Discover:**
+- Web frameworks (React, Vue, Django, Rails)
+- Server software (nginx, Apache, IIS)
+- CDNs and WAFs (Cloudflare, Akamai, AWS CloudFront)
+- CMS platforms (WordPress, Drupal, Joomla)
+
+#### Step 8: Vulnerability Scanning
+**Run automated security checks**
+
+```bash
+# Vulnerability scanning with Nuclei (PLANNED integration)
+# Nuclei is already installed - use it directly for now:
+
+# Scan all alive hosts
+./recon-cli recon results export example.com --format txt --alive-only -o alive.txt
+nuclei -l alive.txt -t ~/nuclei-templates/ -o vulnerabilities.txt
+
+# Scan for specific vulnerability types
+nuclei -l alive.txt -t ~/nuclei-templates/cves/ -severity critical,high
+
+# Scan for misconfigurations
+nuclei -l alive.txt -t ~/nuclei-templates/misconfiguration/
+
+# Scan for exposed panels
+nuclei -l alive.txt -t ~/nuclei-templates/exposed-panels/
+```
+
+**Check For:**
+- ✅ Known CVEs
+- ✅ Misconfigurations
+- ✅ Exposed admin panels
+- ✅ Default credentials
+- ✅ Information disclosure
+- ✅ Missing security headers
+
+#### Step 9: Content Discovery
+**Find hidden endpoints and files**
+
+```bash
+# Content discovery (PLANNED - not yet implemented)
+# Use external tools for now:
+
+# Fast fuzzing with ffuf
+ffuf -u https://example.com/FUZZ -w /path/to/wordlist.txt -o discovery.json
+
+# Directory brute force with gobuster
+gobuster dir -u https://example.com -w /path/to/wordlist.txt -o dirs.txt
+
+# Recursive discovery with feroxbuster
+feroxbuster -u https://example.com -w /path/to/wordlist.txt
+```
+
+**Discover:**
+- 🔍 Admin panels, API endpoints, backup files
+- 📁 `.git`, `.env`, config files, `backup.sql`
+- 🧪 Development/staging endpoints
+- 📝 Documentation, changelogs, READMEs
+
+#### Step 10: Visual Reconnaissance
+**Screenshot all alive hosts for quick review**
+
+```bash
+# Visual reconnaissance (PLANNED - not yet implemented)
+# Use external tools for now:
+
+# Screenshots with gowitness (recommended)
+gowitness file -f alive.txt -P screenshots/
+
+# Screenshots with aquatone
+cat alive.txt | aquatone -out aquatone_results/
+
+# Screenshots with eyewitness
+eyewitness -f alive.txt -d eyewitness_results/
+```
+
+**Benefits:**
+- 📸 Quickly identify interesting targets visually
+- 🎯 Find login panels, admin interfaces, custom apps
+- 👀 Spot unusual pages that deserve manual testing
+- 📊 Generate visual reports for client deliverables
+
+---
+
+### Current Workflow Example
+
+Here's a complete reconnaissance session:
+
+```bash
+# 1. Discover all subdomains
+./recon-cli recon subdomain tesla.com
+# Output: Found 808 unique subdomains
+
+# 2. Find which ones are alive
+./recon-cli recon verify tesla.com
+# Output: 156 alive (19.3%), 652 dead (80.7%)
+
+# 3. Get domain registration info
+./recon-cli recon whois tesla.com
+# Output: Registrar, nameservers, expiry date
+
+# 4. Export alive hosts for further testing
+./recon-cli recon results export tesla.com --format csv --alive-only
+# Output: tesla_alive_hosts.csv with 156 entries
+
+# 5. Next step (coming soon): Get DNS records
+# ./recon-cli recon dns tesla.com
+# Will map all IPs, find MX records, identify cloud providers
+```
+
+**What You'll Have:**
+- ✅ Complete subdomain inventory
+- ✅ List of alive/accessible hosts with status codes
+- ✅ Domain registration information
+- ✅ Exportable data for tools like Burp Suite, nuclei, etc.
+- 🚧 DNS records and IP mappings (coming next)
+
+---
+
 ## Usage
 
 ### Program Commands

@@ -10,6 +10,7 @@ Recontronic CLI is a command-line interface for managing continuous reconnaissan
 - Authentication system fully implemented (register, login, API key management)
 - Interactive REPL mode with dashboard
 - Activity logging and smart suggestions
+- Reconnaissance tools: subdomain enumeration, HTTP verification, WHOIS lookup
 
 ## Build & Development Commands
 
@@ -98,11 +99,18 @@ go test -tags=integration ./...
 # After building
 ./recon-cli [command]
 
-# Examples
+# Examples - Authentication
 ./recon-cli auth register
 ./recon-cli auth login
 ./recon-cli auth whoami
 ./recon-cli config set server http://localhost:8080
+
+# Examples - Reconnaissance
+./recon-cli recon subdomain example.com
+./recon-cli recon verify example.com
+./recon-cli recon whois example.com
+./recon-cli recon results list
+./recon-cli recon results export example.com --format csv
 ```
 
 ## Architecture
@@ -170,6 +178,11 @@ The CLI features an interactive dashboard that displays on startup, providing im
 - `cmd/version.go` - Version information
 - `cmd/dashboard.go` - Interactive dashboard display
 - `cmd/interactive.go` - REPL mode with command parser
+- `cmd/recon.go` - Reconnaissance command root
+- `cmd/recon_subdomain.go` - Subdomain enumeration (integrated into recon.go)
+- `cmd/recon_verify.go` - HTTP/HTTPS verification
+- `cmd/recon_whois.go` - WHOIS domain lookup
+- `cmd/recon_results.go` - Results management (list, view, export)
 
 ### Configuration System
 
@@ -222,6 +235,44 @@ All API request/response structures are defined here:
 - `Program`, `Scan`, `Anomaly` - Future features (server not yet implemented)
 
 **API Key Format:** All API keys use the prefix `rct_` (e.g., `rct_AbCdEf123456789...`)
+
+### Reconnaissance Package
+
+**Location:** `pkg/recon/`
+
+Provides standalone reconnaissance tools for passive information gathering:
+
+**Core Files:**
+- `executor.go` - Safe command execution with timeouts and context cancellation
+- `storage.go` - JSON file storage in `~/.recon-cli/results/<domain>/`
+- `parser.go` - Domain validation, cleaning, deduplication, and sorting
+- `subdomain.go` - Multi-source subdomain enumeration (crt.sh, subfinder, amass, assetfinder)
+- `verify.go` - DNS resolution and HTTP/HTTPS verification with title extraction
+- `whois.go` - WHOIS domain information lookup and parsing
+- `results.go` - Results management, filtering, and querying
+
+**Key Features:**
+- **Subdomain Enumeration:** Multi-source passive discovery with tool detection
+- **HTTP Verification:** Concurrent DNS + HTTP probing with status codes and HTML titles
+- **WHOIS Lookup:** Domain registration info (registrar, dates, nameservers, status)
+- **Results Management:** List, view, filter, and export results in CSV/JSON/Markdown
+- **Storage:** JSON files with timestamps, organized by domain
+- **Activity Logging:** All operations logged to `~/.recon-cli/activity.log`
+
+**WHOIS Implementation:**
+- Executes system `whois` command with configurable timeout (default: 30s)
+- Parses output to extract: registrar, creation/expiry/update dates, nameservers, domain status
+- Deduplicates nameservers and status entries (case-insensitive)
+- Supports `--json` flag for raw JSON output, `--raw` for unparsed WHOIS data
+- Results saved to `~/.recon-cli/results/<domain>/whois_<timestamp>.json`
+
+**Example Usage:**
+```bash
+# WHOIS lookup
+./recon-cli recon whois example.com
+./recon-cli recon whois example.com --json
+./recon-cli recon whois example.com --timeout 60s
+```
 
 ### User Input System
 
